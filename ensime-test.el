@@ -1251,33 +1251,6 @@
    ;;    (ensime-test-cleanup proj))))
 
    (ensime-async-test
-    "Test formatting source."
-    (let* ((proj (ensime-create-tmp-project
-                  `((:name
-                     "format_world.scala"
-                     :contents ,(ensime-test-concat-lines
-                                 "class HelloWorld{"
-                                 "def foo:Int=1"
-                                 "}"
-                                 ""))))))
-      (ensime-test-init-proj proj))
-
-    ((:connected))
-    ((:compiler-ready :full-typecheck-finished)
-     (ensime-test-with-proj
-      (proj src-files)
-      (find-file (car src-files))
-      (ensime-format-source)
-      (let ((src (buffer-substring-no-properties
-                  (point-min) (point-max))))
-        (ensime-assert-equal src (ensime-test-concat-lines
-                                  "class HelloWorld {"
-                                  "  def foo: Int = 1"
-                                  "}"
-                                  "")))
-      (ensime-test-cleanup proj))))
-
-   (ensime-async-test
     "Get package info for com.helloworld."
     (let* ((proj (ensime-create-tmp-project
                   ensime-tmp-project-hello-world)))
