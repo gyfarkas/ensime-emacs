@@ -81,6 +81,8 @@ with data loaded from server."
 Caches the last pair used in the last ensime-inf-load-file.
 Used for determining the default in the next one.")
 
+(defvar ensime-inf-overlay-marker nil)
+
 
 (define-derived-mode ensime-inf-mode comint-mode "Scala REPL"
   "Major mode for interacting with a Scala interpreter."
@@ -95,7 +97,6 @@ Used for determining the default in the next one.")
        '(ansi-color-process-output
          comint-postoutput-scroll-to-bottom
          ensime-inf-postoutput-filter))
-  (setq ensime-inf-overlay-marker nil)
 
   (if ensime-inf-ansi-support
       (set (make-local-variable 'ansi-color-for-comint-mode) t)

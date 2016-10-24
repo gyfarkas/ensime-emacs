@@ -17,6 +17,7 @@
 
 (require 'sbt-mode)
 (require 'ensime-config)
+(require 'ensime-inf)
 
 (defgroup ensime-sbt nil
   "Support for sbt build REPL."
@@ -36,7 +37,6 @@
    conn
    (with-current-buffer (sbt-start)
      (setq ensime-buffer-connection conn)
-     (setq ensime-inf-overlay-marker nil)
      (add-hook 'ensime-source-buffer-saved-hook 'ensime-sbt-maybe-auto-compile)
      (add-hook 'comint-output-filter-functions 'ensime-inf-postoutput-filter))))
 
