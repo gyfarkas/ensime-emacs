@@ -60,15 +60,6 @@
 (put 'ensime-test-interrupted 'error-message "Test Interrupted")
 
 
-(defun ensime--extract-scala-library-jar ()
-  (with-temp-buffer
-    (insert-file-contents
-     (ensime-startup-classpath-filename ensime--test-scala-version))
-    (--first
-     (string-match "[/\\]scala-library.*\\.jar$" it )
-     (split-string (buffer-string) ensime--classpath-separator 'omit-nulls))))
-
-
 (defun ensime-test-concat-lines (&rest lines)
   (mapconcat #'identity lines "\n"))
 
@@ -110,18 +101,24 @@
                       "/classes")
                       root-dir))
          (test-target-dir (expand-file-name "test-target" root-dir))
-         (scala-jar (ensime--extract-scala-library-jar))
+         (classpath (s-split ":"
+                             (with-temp-buffer
+                               (insert-file-contents
+                                (ensime-startup-classpath-filename ensime--test-scala-version))
+                               (buffer-string))))
+         (scala-jar (-find (lambda (e) (s-contains? "scala-library" e)) classpath))
 	 (sp-name (if subproject-name
 		      subproject-name
 		    (downcase (file-name-nondirectory root-dir))))
          (config (let ((env (getenv "ENSIME_JVM_TEST_FLAGS"))
-                       (default-flags '("-Xmx1g" "-Xss2m" "-XX:MaxPermSize=128m")))
+                       (default-flags '("-Xmx1g" "-Xss2m")))
                    (append
                     extra-config
                     `(:root-dir ,root-dir
                                 :cache-dir ,cache-dir
                                 :name "test"
                                 :scala-version ,ensime--test-scala-version
+                                :scala-compiler-jars ,classpath
                                 :java-home ,(getenv "JAVA_HOME")
                                 :java-flags , (if env
                                                   (cons env default-flags)
@@ -1733,112 +1730,6 @@
 
       (ensime-test-cleanup proj)
       )))
-
-      ;; (ensime-async-test
-      ;;  "Test debugging scala project."
-      ;;  ;; these test projects should really just be explicitly defined in the repo
-      ;;  (let* ((proj (ensime-create-tmp-project
-      ;;                `((:name
-      ;;                   "test/Test.scala"
-      ;;                   :contents ,(ensime-test-concat-lines
-      ;;                               "package test"
-      ;;                               "object Test {"
-      ;;                               "  def main(args: Array[String]) {"
-      ;;                               "    val a = \"cat\""
-      ;;                               "    val b = \"dog\""
-      ;;                               "    val c = \"bird\""
-      ;;                               "    println(a + b + c)"
-      ;;                               "  }"
-      ;;                               "}")))))
-      ;;         (target    (car (plist-get proj :targets)))
-      ;;         (src-files (plist-get proj :src-files)))
-      ;;    (ensime-create-file
-      ;;     (expand-file-name "build.sbt" (plist-get proj :root-dir))
-      ;;     (ensime-test-concat-lines
-      ;;      "import sbt._"
-      ;;      ""
-      ;;      "name := \"test\""
-      ;;      ""
-      ;;      "scalacOptions += \"-g:notailcalls\""
-      ;;      ""
-      ;;      (concat "scalaVersion := \"" ensime--test-scala-version "\"")
-      ;;      (concat "scalaBinaryVersion := \"" (ensime--scala-binary-version ensime--test-scala-version) "\"")
-      ;;      ))
-      ;;    (assert ensime-sbt-command)
-      ;;    (let ((default-directory (file-name-as-directory (plist-get proj :root-dir))))
-      ;;      (assert (= 0 (apply 'call-process ensime-sbt-command nil
-      ;;                          "*sbt-test-compilation*" nil '("compile")))))
-      ;;    (assert (directory-files (concat target "/test") nil "class$"))
-      ;;    (ensime-test-init-proj proj))
-
-      ;;  ((:connected))
-      ;;  ((:compiler-ready :full-typecheck-finished)
-      ;;   (ensime-test-with-proj
-      ;;    (proj src-files)
-      ;;    (ensime-rpc-debug-set-break buffer-file-name 7)
-      ;;    ;; we could also use the ensime-sbt debugging launcher here
-      ;;    (let ((debugging (start-process
-      ;;                      "debugging"
-      ;;                      "*debugging*"
-      ;;                      "java"
-      ;;                      "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
-      ;;                      "-classpath" (concat (ensime--extract-scala-library-jar)
-      ;;                                           ensime--classpath-separator
-      ;;                                           (car (plist-get proj :targets)))
-      ;;                      "test.Test"))
-      ;;          (attach (lambda (p text)
-      ;;                    (when (s-contains? "Listening for transport dt_socket at address: 5005" text)
-      ;;                      (set-process-filter p nil)
-      ;;                      (ensime-db-attach "127.0.0.1" "5005")))))
-      ;;      (set-process-filter debugging attach))))
-
-      ;;  ;; this doesn't always arrive
-      ;;  ;;(:debug-event evt (equal (plist-get evt :type) 'threadStart))
-
-      ;;  (:debug-event evt (equal (plist-get evt :type) 'breakpoint)
-      ;;                (ensime-test-with-proj
-      ;;                 (proj src-files)
-      ;;                 (let* ((thread-id (plist-get evt :thread-id))
-      ;;                        (trace (ensime-rpc-debug-backtrace thread-id 0 -1))
-      ;;                        (pc-file (file-truename (car src-files))))
-      ;;                   (when (eql system-type 'windows-nt)
-      ;;                     (aset pc-file 0 (upcase (aref pc-file 0)))
-      ;;                     (setq pc-file (replace-regexp-in-string "/" "\\\\" pc-file)))
-      ;;                   (ensime-assert trace)
-      ;;                   (let* ((frame-zero (nth 0 (plist-get trace :frames)))
-      ;;                          ;; Remove incidentals...
-      ;;                          (frame (plist-put frame-zero :this-object-id "NA")))
-      ;;                     (ensime-assert-equal
-      ;;                      frame
-      ;;                      `(:index 0 :locals
-      ;;                               ((:index 0 :name "args" :summary "Array[]" :type-name "java.lang.String[]")
-      ;;                                (:index 1 :name "a" :summary "\"cat\"" :type-name "java.lang.String")
-      ;;                                (:index 2 :name "b" :summary "\"dog\"" :type-name "java.lang.String")
-      ;;                                (:index 3 :name "c" :summary "\"bird\"" :type-name "java.lang.String"))
-      ;;                               :num-args 1
-      ;;                               :class-name "test.Test$"
-      ;;                               :method-name "main"
-      ;;                               :pc-location (:file ,pc-file :line 7)
-      ;;                               :this-object-id "NA"))))
-      ;;                 (ensime-rpc-debug-stop)
-      ;;                 (ensime-test-cleanup proj))))
-
-   (ensime-async-test
-    "REPL without server."
-    (progn
-      (ensime-test-init-proj
-       (ensime-create-tmp-project '((:name "test.scala" :contents "")))
-       t)
-      (let* ((ensime-prefer-noninteractive t)
-	     (proc (ensime-inf-run-scala)))
-	(ensime-test-var-put :repl-proc proc)))
-    ((:inf-repl-ready)
-     (ensime-inf-quit-interpreter))
-    ((:inf-repl-exit)
-     (let ((proc (ensime-test-var-get :repl-proc)))
-       (ensime-assert-equal (process-status proc) 'exit)
-       (ensime-assert-equal (process-exit-status proc) 0)
-       (ensime-test-with-proj (proj src-files) (ensime-cleanup-tmp-project proj)))))
 
    (ensime-async-test
     "Test ensime--make-result-overlay."
