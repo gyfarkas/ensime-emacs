@@ -678,8 +678,12 @@
       (ensime-assert-equal (plist-get (text-properties-at (point)) :ensime-type-full-name) "java.lang.String")
       (ensime-assert-equal (plist-get (text-properties-at (point)) :ensime-member-name) "equalsIgnoreCase")
       (ensime-assert-equal (plist-get (text-properties-at (point)) :ensime-member-signature) "(Ljava/lang/String;)Z")
-      (ensime-assert (let ((url (ensime--inspector-doc-url-at-point)))
-		       (s-ends-with-p "java/lang/String.html#equalsIgnoreCase(java.lang.String)" (url-unhex-string url))))
+      (ensime-assert (let ((url (ensime--inspector-doc-url-at-point))
+                           (clean (url-unhex-string url)))
+                       (or
+                        (s-ends-with-p "java/lang/String.html#equalsIgnoreCase(java.lang.String)" clean)
+                        ;; java 8 format
+                        (s-ends-with-p "java/lang/String.html#equalsIgnoreCase-java.lang.String-" clean))))
 
       (goto-char 1)
       (ensime-assert (search-forward-regexp "^offsetByCodePoints" nil t))
