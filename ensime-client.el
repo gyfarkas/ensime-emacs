@@ -771,7 +771,7 @@ copies. All other objects are used unchanged. List must not contain cycles."
     "Good news, everyone! I've taught the type system to feel love."
     "Come and say hi at https://gitter.im/ensime/ensime-emacs"
     "CanBuildFrom[List[Dream], Reality, List[Reality]]"
-    '(format "Witness[%s.type]" (ensime-user-first-name))
+    ,(format "Witness[%s.type]" (ensime-user-first-name))
     ,(format "%s, this could be the start of a beautiful program." (ensime-user-first-name)))
   "Scientifically-proven optimal words of hackerish encouragement.")
 
