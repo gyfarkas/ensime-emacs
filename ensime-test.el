@@ -101,12 +101,10 @@
                       "/classes")
                       root-dir))
          (test-target-dir (expand-file-name "test-target" root-dir))
-         (classpath (s-split ":"
-                             (with-temp-buffer
-                               (insert-file-contents
-                                (ensime-startup-classpath-filename ensime--test-scala-version))
-                               (buffer-string))))
-         (scala-jar (-find (lambda (e) (s-contains? "scala-library" e)) classpath))
+         (example-dotensime (ensime-config-load "test/example/.ensime"))
+         (scala-compiler-jars (plist-get example-dotensime :scala-compiler-jars))
+         (ensime-server-jars (plist-get example-dotensime :ensime-server-jars))
+         (scala-jar (-find (lambda (e) (s-contains? "scala-library" e)) scala-compiler-jars))
 	 (sp-name (if subproject-name
 		      subproject-name
 		    (downcase (file-name-nondirectory root-dir))))
@@ -118,7 +116,8 @@
                                 :cache-dir ,cache-dir
                                 :name "test"
                                 :scala-version ,ensime--test-scala-version
-                                :scala-compiler-jars ,classpath
+                                :ensime-server-jars ,ensime-server-jars
+                                :scala-compiler-jars ,scala-compiler-jars
                                 :java-home ,(getenv "JAVA_HOME")
                                 :java-flags , (if env
                                                   (cons env default-flags)
