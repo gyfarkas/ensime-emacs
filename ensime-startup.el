@@ -206,11 +206,10 @@ CACHE-DIR is the server's persistent output directory."
     (comint-mode)
     (let* ((default-directory cache-dir)
            (tools-jar (expand-file-name "lib/tools.jar" java-home))
-           (scala-compiler-jars (plist-get config :scala-compiler-jars))
            (process-environment (append user-env process-environment))
            (java-command (expand-file-name "bin/java" java-home))
            (args (-flatten (list
-                            "-classpath" (ensime--build-classpath classpath)
+                            "-classpath" (ensime--build-classpath (cons tools-jar classpath))
                             flags
                             (concat "-Densime.config=" (expand-file-name config-file))
                             (when ensime-server-logback
