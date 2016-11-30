@@ -1945,22 +1945,12 @@
 (defun ensime-run-all-tests ()
   "Run all regression tests for ensime-mode."
   (interactive)
-  ;; HACK: temporarilly disable exiting, to run the fast suite
-  (setq ensime--test-exit-on-finish--old ensime--test-exit-on-finish)
-  (setq ensime--test-exit-on-finish nil)
 
-  (ensime--update-server
-   ensime--test-scala-version
-   (lambda()
-     (setq ensime--test-exit-on-finish ensime--test-exit-on-finish--old)
-     (when (and ensime--test-had-failures ensime--test-exit-on-finish)
-       (kill-emacs 1))
-     (ensime-run-suite ensime-slow-suite)))
+  (ensime-run-suite ensime-slow-suite)
 
   ;; needed for -batch mode
   (while noninteractive
-    (sit-for 30))
-  )
+    (sit-for 30)))
 
 (defun ensime-run-one-test (key)
   "Run a single test selected by title.
