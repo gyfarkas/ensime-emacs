@@ -25,8 +25,9 @@
 (defvar ensime--debug-messages nil
   "When true, show debugging information in the echo area")
 
-(defvar ensime-startup-dirname (expand-file-name "ensime" user-emacs-directory)
-  "Directory where the classfile or assembly jars are stored.")
+(defvar ensime-startup-notification t
+  "Show a popup about documentation.
+It is important that users know about the documentation.")
 
 (defvar ensime-startup-snapshot-notification t
   "Show a warning about using rolling release.
@@ -72,15 +73,14 @@ If you want to install the stable release of ensime instead, delete
         (display-buffer developer #'display-buffer-pop-up-window))))
 
   ;; welcome is more important, make sure it wins the popup race
-  (unless (file-exists-p ensime-startup-dirname)
+  (when ensime-startup-notification
     (let ((welcome (generate-new-buffer "*ENSIME Welcome*")))
-      (mkdir ensime-startup-dirname t) ;; HACK
       (with-current-buffer welcome
         (insert "It looks like you've just installed ENSIME, welcome!
 
 ENSIME is more complex than a typical Emacs plugin and interacts
-with an external java application (which will be downloaded and
-started automatically).
+with an external java application (which is downloaded by your
+build tool plugin).
 
 You are strongly recommended to read the documentation at
 
@@ -96,8 +96,9 @@ help you to implement or fix it. The ENSIME codebase is
 surprisingly easy to understand and you are invited to read the
 contributing guide and jump in: http://ensime.org/contributing/
 
-This notification will only appear if you do not have a directory
-at `ensime-startup-dirname'.")
+You can disable this message permanently by setting
+`ensime-startup-notification' to `nil', acknowledging
+that you have read this message.")
         (goto-char (point-min))
         (read-only-mode t)
         (display-buffer welcome #'display-buffer-pop-up-window)))))
@@ -133,9 +134,21 @@ at `ensime-startup-dirname'.")
 
     (unless ensime-server-jars
       (error (concat
-              "You are using a .ensime file format that is no longer supported. "
-              "You must upgrade your build tool or downgrade to ensime stable. "
-              "See http://ensime.org/editors/emacs/install")))
+              "\n\n"
+              "You are using a .ensime file format that is no longer supported.\n"
+              "You must upgrade your build tool or downgrade to ensime stable.\n"
+              "See http://ensime.org/editors/emacs/install\n\n")))
+
+    ;; not relevant for stable releases
+    (unless (or
+             (not (s-contains? "SNAPSHOT" ensime-server-version))
+             (--find (s-matches-p "ensime.*SNAPSHOT" it) ensime-server-jars))
+      (error (concat
+              "\n\n"
+              "Your build tool has downloaded the stable version of ENSIME "
+              "but you are using the Developer Emacs install.\n\n"
+              "Check that you followed all the steps at http://ensime.org/editors/emacs/install "
+              "including additional steps that are required by your build tool.\n\n")))
 
     (let* ((server-proc
             (ensime--maybe-start-server
@@ -255,16 +268,6 @@ CACHE-DIR is the server's persistent output directory."
     (`(2 10 ,_) "2.10")
     (`(2 11 ,_) "2.11")
     (t (error "unsupported scala version %s" full-version))))
-
-(defun ensime--create-sbt-start-script (scala-version)
-  ;; emacs has some weird case-preservation rules in regexp replace
-  ;; see http://github.com/magnars/s.el/issues/62
-  (s-replace-all (list (cons "_scala_version_" scala-version)
-                       (cons "_scala_binary_version_" (ensime--scala-binary-version scala-version))
-                       (cons "_server_version_" ensime-server-version)
-                       (cons "_classpath_file_" (ensime-startup-classpath-filename scala-version)))
-                 ensime--sbt-start-template))
-
 
 (defun ensime-shutdown ()
   "Terminate the associated ENSIME server (equivalent to killing its buffer)."
