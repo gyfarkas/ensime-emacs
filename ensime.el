@@ -36,16 +36,12 @@
   (interactive)
   (ensime-startup-notifications)
   (let ((orig-bfn (buffer-file-name-with-indirect)))
-    (condition-case ex
-        (if ensime-auto-generate-config
-            (ensime--maybe-refresh-config
-             nil
-             `(lambda () (ensime--maybe-update-and-start-noninteractive ,orig-bfn))
-             `(lambda (reason) (ensime--maybe-update-and-start-noninteractive ,orig-bfn)))
-          (ensime--maybe-update-and-start orig-bfn))
-      ('error (error (format
-                      "check that sbt is on your PATH and see the Troubleshooting Guide for further steps %s [%s]"
-                      "http://ensime.org/editors/emacs/troubleshooting/" ex))))))
+    (if ensime-auto-generate-config
+        (ensime--maybe-refresh-config
+         nil
+         `(lambda () (ensime--maybe-update-and-start-noninteractive ,orig-bfn))
+         `(lambda (reason) (ensime--maybe-update-and-start-noninteractive ,orig-bfn)))
+      (ensime--maybe-update-and-start orig-bfn))))
 
 ;;;###autoload
 (defun ensime-remote (host port)
