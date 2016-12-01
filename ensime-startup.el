@@ -74,6 +74,7 @@ If you want to install the stable release of ensime instead, delete
   ;; welcome is more important, make sure it wins the popup race
   (unless (file-exists-p ensime-startup-dirname)
     (let ((welcome (generate-new-buffer "*ENSIME Welcome*")))
+      (mkdir ensime-startup-dirname t) ;; HACK
       (with-current-buffer welcome
         (insert "It looks like you've just installed ENSIME, welcome!
 
