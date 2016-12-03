@@ -148,7 +148,11 @@ that you have read this message.")
               "Your build tool has downloaded the stable version of ENSIME "
               "but you are using the Developer Emacs install.\n\n"
               "Check that you followed all the steps at http://ensime.org/editors/emacs/install "
-              "including additional steps that are required by your build tool.\n\n")))
+              "including additional steps that are required by your build tool.\n\n"
+              "For SBT, add the following to your ~/.sbt/0.13/global.sbt\n\n"
+              "\t import org.ensime.EnsimeCoursierKeys._\n"
+              "\t ensimeServerVersion in ThisBuild := \"2.0.0-SNAPSHOT\"\n\n"
+              "Currently other build tools do not support 2.0 file format.\n\n")))
 
     (let* ((server-proc
             (ensime--maybe-start-server
